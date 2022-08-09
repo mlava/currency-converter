@@ -71,7 +71,6 @@ export default {
                         fetch(url, requestOptions).then(function (response) {
                             return response.json();
                         }).then(function (data) {
-                            console.error(data.data);
                             for (const m of matches) { //regex found at least one currency to convert
                                 let origValue = m[2];
                                 let currency = m[3];
@@ -79,7 +78,6 @@ export default {
 
                                 for (const [key, value] of Object.entries(data.data)) {
                                     if (key == currency) {
-                                        console.error(value.value);
                                         let convRate = value.value;
                                         let newValue = (origValue * (1 / convRate)).toFixed(2);
                                         if (replacePreference == "inline") {
