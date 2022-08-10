@@ -32,69 +32,91 @@ export default {
         });
 
         async function convertCurrency() {
-            if (!extensionAPI.settings.get("currConv-apiKey")) {
-                sendConfigAlert();
-            } else if (!extensionAPI.settings.get("currConv-base")) {
-                sendConfigAlert();
-            } else if (!extensionAPI.settings.get("currConv-replacePreference")) {
-                sendConfigAlert();
-            } else {
-                const apiKey = extensionAPI.settings.get("currConv-apiKey");
-                const baseCurrency = extensionAPI.settings.get("currConv-base");
-                const replacePreference = extensionAPI.settings.get("currConv-replacePreference");
+            var key, baseCurrency, replacePreference;
+            breakme: {
+                if (!extensionAPI.settings.get("currConv-apiKey")) {
+                    key = "API";
+                    sendConfigAlert(key);
+                    break breakme;
+                } else if (!extensionAPI.settings.get("currConv-base")) {
+                    key = "curr";
+                    sendConfigAlert(key);
+                    break breakme;
+                }
+                else {
+                    const apiKey = extensionAPI.settings.get("currConv-apiKey");
 
-                const startBlock = await window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
-                let q = `[:find (pull ?page
-                [:node/title :block/string ])
-             :where [?page :block/uid "${startBlock}"]  ]`;
-                var block = await window.roamAlphaAPI.q(q);
-
-                if (block[0][0].string.length > 0) {
-                    var text = block[0][0].string;
-                    const regex = /(([0-9.]+) ([A-Z]{3}))/gm;
-                    let m;
-                    var newString = text;
-
-                    //test for regex matches
-                    if (!text.match(regex)) { // no matches
-                        noCurrency();
+                    const regex = /^[A-Z]{3}$/m;
+                    if (extensionAPI.settings.get("currConv-base").match(regex)) {
+                        baseCurrency = extensionAPI.settings.get("currConv-base");
                     } else {
-                        const matches = text.matchAll(regex);
+                        key = "curr2";
+                        sendConfigAlert(key);
+                        break breakme;
+                    }
 
-                        // call to currencyapi.com API
-                        var requestOptions = {
-                            method: 'GET',
-                            timeout: 0,
-                            redirect: 'follow',
-                        };
-                        var url = "https://api.currencyapi.com/v3/latest?apikey=" + apiKey + "&base_currency=" + baseCurrency;
-                        fetch(url, requestOptions).then(function (response) {
-                            return response.json();
-                        }).then(function (data) {
-                            for (const m of matches) { //regex found at least one currency to convert
-                                let origValue = m[2];
-                                let currency = m[3];
-                                console.log(`Converting ${origValue} in ${currency} to ${baseCurrency}`);
+                    if (!extensionAPI.settings.get("currConv-replacePreference")) {
+                        replacePreference = "inline";
+                    } else {
+                        const regex = /^inline|end$/;
+                        if (extensionAPI.settings.get("currConv-replacePreference").match(regex)) {
+                            replacePreference = extensionAPI.settings.get("currConv-replacePreference");
+                        } else {
+                            key = "rePref";
+                            sendConfigAlert(key);
+                            break breakme;
+                        }
+                    }
 
-                                for (const [key, value] of Object.entries(data.data)) {
-                                    if (key == currency) {
-                                        let convRate = value.value;
-                                        let newValue = (origValue * (1 / convRate)).toFixed(2);
-                                        if (replacePreference == "inline") {
-                                            newString = newString.replace(m[1], "" + m[1] + " (" + newValue + " " + baseCurrency + ")");
-                                        } else if (replacePreference == "end") {
-                                            newString = newString + ' (' + newValue + ' ' + baseCurrency + ')';
+                    const startBlock = await window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
+                    var block = await window.roamAlphaAPI.data.pull("[:block/string]", [":block/uid", startBlock]);
+                    if (block[":block/string"].length > 0) {
+                        var text = block[":block/string"];
+                        const regex = /(([0-9.]+) ([A-Z]{3}))/gm;
+                        let m;
+                        var newString = text;
+
+                        //test for regex matches
+                        if (!text.match(regex)) { // no matches
+                            noCurrency();
+                        } else {
+                            const matches = text.matchAll(regex);
+
+                            // call to currencyapi.com API
+                            var requestOptions = {
+                                method: 'GET',
+                                timeout: 0,
+                                redirect: 'follow',
+                            };
+                            var url = "https://api.currencyapi.com/v3/latest?apikey=" + apiKey + "&base_currency=" + baseCurrency;
+                            fetch(url, requestOptions).then(function (response) {
+                                return response.json();
+                            }).then(function (data) {
+                                for (const m of matches) { //regex found at least one currency to convert
+                                    let origValue = m[2];
+                                    let currency = m[3];
+                                    console.log(`Converting ${origValue} in ${currency} to ${baseCurrency}`);
+
+                                    for (const [key, value] of Object.entries(data.data)) {
+                                        if (key == currency) {
+                                            let convRate = value.value;
+                                            let newValue = (origValue * (1 / convRate)).toFixed(2);
+                                            if (replacePreference == "inline") {
+                                                newString = newString.replace(m[1], "" + m[1] + " (" + newValue + " " + baseCurrency + ")");
+                                            } else if (replacePreference == "end") {
+                                                newString = newString + ' (' + newValue + ' ' + baseCurrency + ')';
+                                            }
+                                            window.roamAlphaAPI.updateBlock(
+                                                { block: { uid: startBlock, string: newString.toString(), open: true } });
                                         }
-                                        window.roamAlphaAPI.updateBlock(
-                                            { block: { uid: startBlock, string: newString.toString(), open: true } });
                                     }
                                 }
-                            }
-                        });
+                            });
+                        }
                     }
-                }
-                else { // no text in block to match
-                    noCurrency();
+                    else { // no text in block to match
+                        noCurrency();
+                    }
                 }
             }
         };
@@ -111,6 +133,14 @@ function noCurrency() {
     alert("No matches found. Make sure to use \'xxx.xx AAA\' as the format, where x is an integer and AAA is a three-letter currency code in all CAPS");
 }
 
-function sendConfigAlert() {
-    alert("Please set all required configuration settings via the Roam Depot tab.");
+function sendConfigAlert(key) {
+    if (key == "API") {
+        alert("Please enter your API key in the configuration settings via the Roam Depot tab.");
+    } else if (key == "curr") {
+        alert("Please enter your base currency in the configuration settings via the Roam Depot tab.");
+    } else if (key == "curr2") {
+        alert("Please enter a standard three-letter currency code in configuration settings via the Roam Depot tab.");
+    } else if (key == "rePref") {
+        alert("Please enter either inline or end in the configuration settings via the Roam Depot tab.");
+    }
 }
