@@ -1,5 +1,8 @@
 This extension allows you to convert currency in your Roam Research graph into a configurable base currency.
 
+**New:**
+- compatible with RR Hotkeys
+
 It uses the free API at https://currencyapi.com/ which allows for 300 conversions per month.
 
 Simply trigger via the Commmand Palette in any block that contains a currency value. It needs to match the format xxx.yy AAA, where xxx.yy is any numerical value and AAA is a standard three-letter currency code.
