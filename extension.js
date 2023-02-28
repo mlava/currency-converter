@@ -26,7 +26,7 @@ export default {
     onload: ({ extensionAPI }) => {
         extensionAPI.settings.panel.create(config);
 
-        window.roamAlphaAPI.ui.commandPalette.addCommand({
+        extensionAPI.ui.commandPalette.addCommand({
             label: "Convert Currency",
             callback: () => convertCurrency()
         });
@@ -122,9 +122,7 @@ export default {
         };
     },
     onunload: () => {
-        window.roamAlphaAPI.ui.commandPalette.removeCommand({
-            label: 'Convert Currency'
-        });
+        // nothing left here
     }
 }
 
