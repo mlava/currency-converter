@@ -2,7 +2,7 @@ This extension allows you to convert currency in your Roam Research graph into a
 
 **New:**
 - added option to right-click on block dot and use the Extensions menu option
-- compatible with RR Hotkeys
+<img width="382" alt="image" src="https://github.com/mlava/currency-converter/assets/6857790/026f5fc5-7030-4141-a6a2-980eca00a383">
 
 It uses the free API at https://currencyapi.com/ which allows for 300 conversions per month.
 
