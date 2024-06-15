@@ -28,10 +28,15 @@ export default {
 
         extensionAPI.ui.commandPalette.addCommand({
             label: "Convert Currency",
-            callback: () => convertCurrency()
+            callback: () => convertCurrency(false)
+        });
+        
+        window.roamAlphaAPI.ui.blockContextMenu.addCommand({
+            label: "Convert Currency",
+            callback: (e) => convertCurrency(e),
         });
 
-        async function convertCurrency() {
+        async function convertCurrency(e) {
             var key, baseCurrency, replacePreference;
             breakme: {
                 if (!extensionAPI.settings.get("currConv-apiKey")) {
@@ -68,10 +73,16 @@ export default {
                         }
                     }
 
-                    const startBlock = await window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
-                    var block = await window.roamAlphaAPI.data.pull("[:block/string]", [":block/uid", startBlock]);
-                    if (block[":block/string"].length > 0) {
-                        var text = block[":block/string"];
+                    var uid, text;
+                    if (e) { // bullet right-click
+                        uid = e["block-uid"].toString();
+                        text = e["block-string"].toString();
+                    } else { // command palette
+                        uid = await window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
+                        var block = await window.roamAlphaAPI.data.pull("[:block/string]", [":block/uid", uid]);
+                        text = block[":block/string"].toString();
+                    }
+                    if (text.length > 1) {
                         const regex = /(([0-9.]+) ([A-Z]{3}))/gm;
                         let m;
                         var newString = text;
@@ -107,7 +118,7 @@ export default {
                                                 newString = newString + ' (' + newValue + ' ' + baseCurrency + ')';
                                             }
                                             window.roamAlphaAPI.updateBlock(
-                                                { block: { uid: startBlock, string: newString.toString(), open: true } });
+                                                { block: { uid: uid, string: newString.toString(), open: true } });
                                         }
                                     }
                                 }
@@ -117,6 +128,7 @@ export default {
                     else { // no text in block to match
                         noCurrency();
                     }
+                    
                 }
             }
         };

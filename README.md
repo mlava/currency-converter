@@ -1,6 +1,7 @@
 This extension allows you to convert currency in your Roam Research graph into a configurable base currency.
 
 **New:**
+- added option to right-click on block dot and use the Extensions menu option
 - compatible with RR Hotkeys
 
 It uses the free API at https://currencyapi.com/ which allows for 300 conversions per month.
